@@ -10,7 +10,6 @@ class OllamaEmbeddingProvider(EmbeddingProvider):
         self.url = "http://localhost:11434/api/embeddings"
 
     def embed(self, text: str) -> List[float]:
-        print(text)
         response = requests.post(
             self.url,
             json={
@@ -20,6 +19,5 @@ class OllamaEmbeddingProvider(EmbeddingProvider):
             timeout=30
         )
         response.raise_for_status()
-        print(response.json())
         return response.json()["embedding"]
 

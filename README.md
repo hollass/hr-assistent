@@ -1,12 +1,14 @@
-# HR Assistant — Семантическое сравнение CV ↔ JD (MVP)
+# HR Assistant — Семантическое сравнение CV ↔ JD с Explainability и Skill-level Matching
 
-Минимальный движок для семантического сравнения резюме (CV) и описаний вакансий (JD)
-с использованием локальных эмбеддингов LLM через Ollama.
+Минимальный HR-ассистент для семантического сравнения резюме (CV) и описаний вакансий (JD)
+с поддержкой различных LLM-эмбеддингов (Ollama, включая Qwen3-VL:4B).
 
 Проект демонстрирует:
 - семантическое сравнение текстов
-- чистую архитектуру
-- готовность к расширению с точки зрения fairness и explainability
+- explainability по чанкам
+- skill-level matching
+- базовый контроль предвзятости (bias)
+- возможность выбора модели эмбеддингов
 
 ---
 
@@ -18,12 +20,14 @@
 
 ---
 
-## Решение (текущий MVP)
+## Решение (текущий этап)
 
-- Преобразование текста CV и JD в векторные эмбеддинги с помощью Ollama
-- Вычисление семантической близости через cosine similarity
-- Полностью локальное решение, без внешних API
-- Возвращает числовой показатель схожести между CV и JD
+- Разбиение CV и JD на чанки  
+- Генерация эмбеддингов через Ollama (модель по выбору: `nomic-embed-text`)  
+- Семантическая оценка соответствия через cosine similarity  
+- Skill-level matching: извлечение и сопоставление навыков CV ↔ JD  
+- Explainability: вклад каждого чанка в общий скор  
+- Базовая проверка предвзятости (bias detection)
 
 ---
 
@@ -31,39 +35,34 @@
 
 ```
 
-Текст CV ──▶ Эмбеддинги ──▶ Сравнение ──▶ Результат (score)
+CV / JD ──▶ Chunk Split ──▶ Embeddings (Ollama / Qwen3-VL)
+│                │
+│                └─▶ Cosine Similarity ──▶ Semantic Score
+│
+├─▶ Skill Extractor ──▶ Skill Score
+│
+└─▶ LLMAnalyzer (опция: Qwen3-VL) ──▶ Explainability + Bias
 
 ````
-
-- **Domain layer:** CV, JobDescription, MatchResult  
-- **Embedding layer:** абстракция провайдера эмбеддингов (Ollama)  
-- **Matching layer:** вычисление cosine similarity  
-- **Service layer:** оркестрация процесса  
-- **Main:** простая демонстрация через CLI  
-
-Модульная структура позволяет легко добавлять:
-- контроль предвзятости (fairness)
-- объяснимость (explainability)
-- сравнение навыков (skill-level matching)
-
 ---
 
 ## Стек технологий
 
 - Python 3.10+
 - Ollama (локальные LLM эмбеддинги)
-- Модель эмбеддингов `nomic-embed-text`
+- Поддерживаемые модели: `nomic-embed-text`
 - NumPy, scikit-learn
-- Pydantic (для типизированных моделей данных)
+- Pydantic (типизированные модели данных)
+- Requests (взаимодействие с Ollama API)
 
 ---
 
 ## Установка
 
 ### 1. Установить Ollama
-[https://ollama.com](https://ollama.com)
+[ollama](https://ollama.com)
 
-### 2. Подгрузить модель эмбеддингов
+### 2. Подгрузить модели
 ```bash
 ollama pull nomic-embed-text
 ````
@@ -92,35 +91,40 @@ pip install -r requirements.txt
 python app/main.py
 ```
 
+Пример запроса модели в CLI:
+
+```
+Введите модель Ollama для embeddings (например, 'nomic-embed-text'): nomic-embed-text
+```
+
 Пример вывода:
 
-```json
-{
-  "score": 0.78,
-  "model": "nomic-embed-text"
-}
+```text
+Семантический скор: 0.82
+Навыки CV: ['Python', 'FastAPI', 'Django', 'PostgreSQL', 'Docker', 'ML', 'LLM']
+Навыки JD: ['Python', 'FastAPI', 'Django', 'PostgreSQL', 'Docker', 'ML']
+Совпадающие навыки: ['Python', 'FastAPI', 'Django', 'PostgreSQL', 'Docker', 'ML']
+Skill score: 1.0
+Проверка предвзятости CV: {'violations': [], 'is_biased': False}
+Проверка предвзятости JD: {'violations': [], 'is_biased': False}
 ```
 
 ---
 
 ## Текущие ограничения
 
-* Нет извлечения навыков из CV или JD
-* Нет контроля предвзятости или fairness
-* Нет слоя объяснимости (explainability)
-* Нет сохранения данных или REST API
-
-Эти возможности намеренно отсутствуют в MVP.
+* Нет полноценной FAIRNESS-логики (только placeholder для слов-признаков)
+* Нет REST API / UI
+* Поддержка ограничена локальными моделями Ollama
 
 ---
 
 ## Дорожная карта
 
-* Объяснимость на уровне чанков (chunk-based explainability)
-* Сравнение навыков (skill-level matching)
-* Метрики предвзятости и контроль fairness
-* REST API через FastAPI
-* Интерактивный UI / дашборд
+* Расширенная FAIRNESS-анализ (гендер, возраст, география)
+* REST API через FastAPI + JSON интерфейс
+* Визуализация Explainability / Skill-level Matching через Dashboard
+* Интеграция других LLM / внешних моделей для embeddings и анализа
 
 ---
 
@@ -128,3 +132,4 @@ python app/main.py
 
 Проект предназначен **только для образовательных и демонстрационных целей**.
 Он **не принимает решения о найме**.
+
