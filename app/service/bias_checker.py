@@ -1,9 +1,11 @@
-from typing import Dict
-
 class BiasChecker:
     def __init__(self):
-        self.forbidden_keywords = ['возраст', 'лет', 'годов']
+        self.keywords = ["age", "gender", "male", "female", "nationality"]
 
-    def check(self, text: str) -> Dict:
-        violations = [kw for kw in self.forbidden_keywords if kw in text.lower()]
-        return {"violations": violations, "is_biased": len(violations) > 0}
+    def check(self, text: str):
+        text = text.lower()
+        found = [k for k in self.keywords if k in text]
+        return {
+            "is_biased": bool(found),
+            "violations": found
+        }

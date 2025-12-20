@@ -2,16 +2,12 @@ import re
 from typing import List
 
 class SkillExtractor:
-    def __init__(self, skills_list: List[str] = None):
-        self.skills_list = skills_list or [
-            "Python", "Django", "FastAPI", "PostgreSQL",
-            "Docker", "ML", "LLM", "AWS", "Git"
+    def __init__(self):
+        self.skills = [
+            "python", "fastapi", "django", "postgresql",
+            "docker", "ml", "llm", "aws", "git"
         ]
 
     def extract(self, text: str) -> List[str]:
-        found = []
-        text_lower = text.lower()
-        for skill in self.skills_list:
-            if re.search(rf"\b{skill.lower()}\b", text_lower):
-                found.append(skill)
-        return found
+        text = text.lower()
+        return [s.capitalize() for s in self.skills if re.search(rf"\b{s}\b", text)]

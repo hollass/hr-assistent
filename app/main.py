@@ -1,29 +1,21 @@
 from app.service.scorer_advanced import AdvancedScorer
-from app.embedding.embedding_ollama import OllamaEmbeddingProvider
+from app.config import EMBEDDING_MODEL
 
 if __name__ == "__main__":
-    user_model = input(
-        "Введите модель Ollama для embeddings (например, 'nomic-embed-text' или 'qwen3-vl:4b'): ").strip()
-
-    scorer = AdvancedScorer(embedding_model=user_model)
-
-    cv_text = """
-    Опыт работы Python backend разработчиком 5 лет.
-    Знаком с FastAPI, Django, PostgreSQL, Docker.
-    Работал с ML-проектами и LLM.
-    """
-    jd_text = """
-    Ищем Python backend разработчика.
-    Опыт с FastAPI, Django, Docker, PostgreSQL.
-    Желателен опыт работы с ML.
+    cv = """
+    Python backend developer, 5 years experience.
+    FastAPI, Django, PostgreSQL, Docker.
+    Worked with ML and LLM systems.
     """
 
-    result = scorer.score(cv_text, jd_text)
+    jd = """
+    Looking for Python backend engineer.
+    Required: FastAPI, Docker, PostgreSQL.
+    ML experience is a plus.
+    """
 
-    print("Семантический скор:", result["semantic_score"])
-    print("Навыки CV:", result["cv_skills"])
-    print("Навыки JD:", result["jd_skills"])
-    print("Совпадающие навыки:", result["matched_skills"])
-    print("Skill score:", result["skill_score"])
-    print("Проверка предвзятости CV:", result["bias_cv"])
-    print("Проверка предвзятости JD:", result["bias_jd"])
+    scorer = AdvancedScorer(EMBEDDING_MODEL)
+    result = scorer.score(cv, jd)
+
+    from pprint import pprint
+    pprint(result)

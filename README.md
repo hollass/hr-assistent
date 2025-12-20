@@ -1,33 +1,40 @@
-# HR Assistant — Семантическое сравнение CV ↔ JD с Explainability и Skill-level Matching
+# HR Assistant — Semantic CV ↔ JD Matching with Explainability & Fairness
 
-Минимальный HR-ассистент для семантического сравнения резюме (CV) и описаний вакансий (JD)
-с поддержкой различных LLM-эмбеддингов (Ollama, включая Qwen3-VL:4B).
+HR-ассистент для автоматизированного анализа соответствия резюме (CV) и описаний вакансий (JD).
+Проект использует **эмбеддинги для численного скоринга** и **LLM (через Ollama) для
+reasoning, explainability и этического анализа**.
 
-Проект демонстрирует:
-- семантическое сравнение текстов
-- explainability по чанкам
-- skill-level matching
-- базовый контроль предвзятости (bias)
-- возможность выбора модели эмбеддингов
+Проект ориентирован на демонстрацию:
+- гибридных LLM-пайплайнов (embeddings + reasoning),
+- explainability решений,
+- контроля bias и fairness,
+- production-ориентированной архитектуры.
 
 ---
 
 ## Проблема
 
-Ручной скрининг резюме занимает много времени и может содержать 
-неосознанные предвзятости.  
-Рекрутерам приходится тратить часы на чтение CV, которые можно было бы отфильтровать автоматически.
+Ручной скрининг резюме:
+- плохо масштабируется,
+- подвержен субъективным ошибкам,
+- сложен для аудита и объяснения решений.
 
 ---
 
-## Решение (текущий этап)
+## Решение
 
-- Разбиение CV и JD на чанки  
-- Генерация эмбеддингов через Ollama (модель по выбору: `nomic-embed-text`)  
-- Семантическая оценка соответствия через cosine similarity  
-- Skill-level matching: извлечение и сопоставление навыков CV ↔ JD  
-- Explainability: вклад каждого чанка в общий скор  
-- Базовая проверка предвзятости (bias detection)
+Многоуровневый HR-ассистент:
+
+1. **Детерминированный анализ**
+   - семантическое сравнение CV ↔ JD через embeddings,
+   - chunk-based explainability,
+   - skill-level matching.
+
+2. **LLM-анализ**
+   - человеко-читаемое объяснение результата,
+   - выявление skill gaps,
+   - анализ потенциальной дискриминации,
+   - рекомендации рекрутеру.
 
 ---
 
@@ -35,49 +42,56 @@
 
 ```
 
-CV / JD ──▶ Chunk Split ──▶ Embeddings (Ollama / Qwen3-VL)
-│                │
-│                └─▶ Cosine Similarity ──▶ Semantic Score
+CV / JD
 │
-├─▶ Skill Extractor ──▶ Skill Score
+├─▶ Chunking
+│     └─▶ Embeddings (embedding-модель)
+│            └─▶ Cosine Similarity
+│                   └─▶ Semantic Score + Chunk attribution
 │
-└─▶ LLMAnalyzer (опция: Qwen3-VL) ──▶ Explainability + Bias
+├─▶ Skill Extraction
+│     └─▶ Skill Match Score
+│
+└─▶ LLM Analyzer
+├─▶ Explainability
+├─▶ Bias / Fairness analysis
+└─▶ Hiring recommendation
 
 ````
+
 ---
 
-## Стек технологий
+## Технологический стек
 
 - Python 3.10+
-- Ollama (локальные LLM эмбеддинги)
-- Поддерживаемые модели: `nomic-embed-text`
-- NumPy, scikit-learn
-- Pydantic (типизированные модели данных)
-- Requests (взаимодействие с Ollama API)
+- Ollama
+- Embedding-модель: `nomic-embed-text` (или аналогичная)
+- LLM (reasoning): `qwen3-vl:4b` (или аналогичная)
+- NumPy
+- Requests
 
 ---
 
 ## Установка
 
 ### 1. Установить Ollama
-[ollama](https://ollama.com)
+https://ollama.com
 
-### 2. Подгрузить модели
+### 2. Загрузить модели
 ```bash
-ollama pull nomic-embed-text
+ollama pull nomic-embed-text (или аналогичная)
+ollama pull qwen3-vl:4b (или аналогичная)
 ````
 
-### 3. Создать виртуальное окружение
+### 3. Виртуальное окружение
 
 ```bash
 python -m venv .venv
-# Linux / Mac
-source .venv/bin/activate
-# Windows
-.venv\Scripts\activate
+source .venv/bin/activate  # Linux / macOS
+.venv\Scripts\activate     # Windows
 ```
 
-### 4. Установить зависимости
+### 4. Зависимости
 
 ```bash
 pip install -r requirements.txt
@@ -85,51 +99,53 @@ pip install -r requirements.txt
 
 ---
 
-## Запуск примера
+## Запуск
 
 ```bash
 python app/main.py
 ```
 
-Пример запроса модели в CLI:
+Пример результата:
 
-```
-Введите модель Ollama для embeddings (например, 'nomic-embed-text'): nomic-embed-text
-```
-
-Пример вывода:
-
-```text
-Семантический скор: 0.82
-Навыки CV: ['Python', 'FastAPI', 'Django', 'PostgreSQL', 'Docker', 'ML', 'LLM']
-Навыки JD: ['Python', 'FastAPI', 'Django', 'PostgreSQL', 'Docker', 'ML']
-Совпадающие навыки: ['Python', 'FastAPI', 'Django', 'PostgreSQL', 'Docker', 'ML']
-Skill score: 1.0
-Проверка предвзятости CV: {'violations': [], 'is_biased': False}
-Проверка предвзятости JD: {'violations': [], 'is_biased': False}
-```
+* semantic score (численный),
+* вклад каждого чанка,
+* совпадающие навыки,
+* LLM-объяснение и рекомендации.
 
 ---
 
-## Текущие ограничения
+## Ключевые особенности проекта
 
-* Нет полноценной FAIRNESS-логики (только placeholder для слов-признаков)
-* Нет REST API / UI
-* Поддержка ограничена локальными моделями Ollama
+* Чёткое разделение:
 
----
-
-## Дорожная карта
-
-* Расширенная FAIRNESS-анализ (гендер, возраст, география)
-* REST API через FastAPI + JSON интерфейс
-* Визуализация Explainability / Skill-level Matching через Dashboard
-* Интеграция других LLM / внешних моделей для embeddings и анализа
+  * embeddings → математика,
+  * LLM → reasoning и этика.
+* Explainability на уровне модели и текста.
+* Bias / fairness как часть пайплайна.
+* Реалистичный HR-use-case, применимый к ATS.
 
 ---
 
-## Дисклеймер
+## Ограничения
 
-Проект предназначен **только для образовательных и демонстрационных целей**.
-Он **не принимает решения о найме**.
+* Fairness-анализ пока эвристический и LLM-based.
+* Нет REST API и UI (планируется).
+* Проект не принимает автоматических решений о найме.
+
+---
+
+## Roadmap
+
+* REST API (FastAPI)
+* Batch-оценка резюме
+* Fairness v2 (LLM + embedding сигнал)
+* Визуализация explainability
+* Подготовка к production deployment
+
+---
+
+## Disclaimer
+
+Проект предназначен **исключительно для демонстрационных и образовательных целей**.
+Он **не должен использоваться для автоматического принятия решений о найме**.
 
