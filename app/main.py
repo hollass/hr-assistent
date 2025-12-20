@@ -1,21 +1,17 @@
-from app.service.scorer_advanced import AdvancedScorer
-from app.config import EMBEDDING_MODEL
+from fastapi import FastAPI
+from app.api.match import router as match_router
+from app.core.config import settings
+from app.api.ats import router as ats_router
 
-if __name__ == "__main__":
-    cv = """
-    Python backend developer, 5 years experience.
-    FastAPI, Django, PostgreSQL, Docker.
-    Worked with ML and LLM systems.
-    """
+app = FastAPI(
+    title=settings.app_name,
+    version=settings.api_version,
+)
 
-    jd = """
-    Looking for Python backend engineer.
-    Required: FastAPI, Docker, PostgreSQL.
-    ML experience is a plus.
-    """
+app.include_router(match_router)
+app.include_router(ats_router)
 
-    scorer = AdvancedScorer(EMBEDDING_MODEL)
-    result = scorer.score(cv, jd)
 
-    from pprint import pprint
-    pprint(result)
+@app.get("/health")
+def health():
+    return {"status": "ok"}

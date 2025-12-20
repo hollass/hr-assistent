@@ -1,13 +1,30 @@
-import re
-from typing import List
+from app.schemas import SkillResult, SkillMatch
+
 
 class SkillExtractor:
-    def __init__(self):
-        self.skills = [
-            "python", "fastapi", "django", "postgresql",
-            "docker", "ml", "llm", "aws", "git"
+    """
+    Извлечение и сопоставление навыков.
+    """
+    def extract(self, text: str) -> list[str]:
+        keywords = ["python", "fastapi", "sql", "docker"]
+        text_lower = text.lower()
+        return [k for k in keywords if k in text_lower]
+
+    def match(self, cv: str, jd: str) -> SkillResult:
+        cv_skills = self.extract(cv)
+        jd_skills = self.extract(jd)
+
+        matched = [
+            SkillMatch(skill=s)
+            for s in cv_skills
+            if s in jd_skills
         ]
 
-    def extract(self, text: str) -> List[str]:
-        text = text.lower()
-        return [s.capitalize() for s in self.skills if re.search(rf"\b{s}\b", text)]
+        score = len(matched) / max(len(jd_skills), 1)
+
+        return SkillResult(
+            cv_skills=cv_skills,
+            jd_skills=jd_skills,
+            matched=matched,
+            score=score,
+        )

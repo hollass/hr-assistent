@@ -1,35 +1,55 @@
-from app.service.scorer_explainable import ExplainableScorer
+from app.schemas import MatchResponse, FairnessResult, CandidateProfile, ATSRankingResponse
+from app.service.semantic_scorer import SemanticScorer
 from app.service.skill_extractor import SkillExtractor
 from app.service.bias_checker import BiasChecker
-from app.llm.llm_analyzer import LLMAnalyzer
+from app.service.fairness_analyzer import FairnessAnalyzer
+from app.service.llm_analyzer import LLMAnalyzer
+from app.embeddings.ollama import OllamaEmbeddingProvider
+from app.service.ats_ranker import ATSRanker
+
 
 class AdvancedScorer:
-    def __init__(self, embedding_model: str):
-        self.semantic = ExplainableScorer(embedding_model)
+
+    def __init__(self):
+        embedding_provider = OllamaEmbeddingProvider(
+            model="nomic-embed-text"
+        )
+
+        self.semantic = SemanticScorer(embedding_provider)
         self.skills = SkillExtractor()
         self.bias = BiasChecker()
+        self.fairness = FairnessAnalyzer()
         self.llm = LLMAnalyzer()
+        self.ats_ranker = ATSRanker(
+            semantic_scorer=self.semantic,
+            skill_extractor=self.skills,
+        )
 
-    def score(self, cv_text: str, jd_text: str):
-        sem = self.semantic.score_with_attribution(cv_text, jd_text)
+    def score(self, cv: str, jd: str) -> MatchResponse:
+        semantic_score = self.semantic.score(cv, jd)
+        skill_result = self.skills.match(cv, jd)
 
-        cv_sk = self.skills.extract(cv_text)
-        jd_sk = self.skills.extract(jd_text)
-        matched = list(set(cv_sk) & set(jd_sk))
-        skill_score = len(matched) / max(len(jd_sk), 1)
+        bias_jd = self.bias.check(jd)
+        fairness_block = self.fairness.analyze(cv, jd)
 
-        result = {
-            "semantic_score": sem["overall_score"],
-            "chunk_scores": sem["chunk_scores"],
-            "cv_skills": cv_sk,
-            "jd_skills": jd_sk,
-            "matched_skills": matched,
-            "skill_score": round(skill_score, 3),
-            "bias_baseline": {
-                "cv": self.bias.check(cv_text),
-                "jd": self.bias.check(jd_text)
-            }
-        }
+        return MatchResponse(
+            semantic=semantic_score,
+            skills=skill_result,
+            fairness=FairnessResult(
+                baseline=bias_jd,
+                scoring=fairness_block,
+            ),
+            llm_insight=self.llm.analyze(),
+        )
 
-        result["llm_analysis"] = self.llm.analyze(cv_text, jd_text, result)
-        return result
+    def rank_candidates(
+            self,
+            jd_text: str,
+            candidates: list[CandidateProfile],
+            top_k: int | None = None,
+    ) -> ATSRankingResponse:
+        return self.ats_ranker.rank(
+            jd_text=jd_text,
+            candidates=candidates,
+            top_k=top_k,
+        )

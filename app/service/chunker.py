@@ -1,12 +1,25 @@
 from typing import List
 
-class TextChunker:
-    def __init__(self, chunk_size: int = 500):
-        self.chunk_size = chunk_size
 
-    def split(self, text: str) -> List[str]:
-        words = text.split()
-        return [
-            " ".join(words[i:i + self.chunk_size])
-            for i in range(0, len(words), self.chunk_size)
-        ]
+class TextChunker:
+    def __init__(self, max_chars: int = 500, overlap: int = 50):
+        self.max_chars = max_chars
+        self.overlap = overlap
+
+    def chunk(self, text: str) -> List[str]:
+        text = text.strip()
+        if not text:
+            return []
+
+        chunks = []
+        start = 0
+        length = len(text)
+
+        while start < length:
+            end = start + self.max_chars
+            chunk = text[start:end].strip()
+            if chunk:
+                chunks.append(chunk)
+            start = end - self.overlap
+
+        return chunks
